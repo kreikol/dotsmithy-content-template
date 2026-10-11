@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Una vez por semana (lunes, 06:00 UTC), para enterarnos si una versión nueva
+  # de dotsmithy deja de entender la plantilla aunque nadie la haya tocado. Solo
+  # cuenta en la plantilla: en tu repo, los jobs se saltan en esta ejecución.
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
@@ -14,6 +19,7 @@ permissions:
 jobs:
   validate:
     name: manifiesto + link por perfil
+    if: github.event_name != 'schedule' || github.repository == 'kreikol/dotsmithy-content-template'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
