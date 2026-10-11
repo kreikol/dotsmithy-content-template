@@ -18,23 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # De momento compilamos dots desde main del motor: la última release
-      # publicada aún no entiende el manifiesto de perfiles compuestos. Cuando haya
-      # una release que lo entienda, esto pasa a descargar el binario de la última.
-      - uses: actions/checkout@v7
-        with:
-          repository: kreikol/dotsmithy
-          ref: main
-          path: .dotsmithy
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: .dotsmithy/go.mod
-          cache-dependency-path: .dotsmithy/go.sum
-      - name: compilar dots
+      # Instala la última release de dotsmithy con su propio instalador, igual
+      # que en una máquina de verdad.
+      - name: instalar dots
         run: |
-          cd .dotsmithy
-          CGO_ENABLED=0 go build -trimpath -o "$RUNNER_TEMP/dots" ./cmd/dots
-          "$RUNNER_TEMP/dots" --version
+          curl -fsSL https://raw.githubusercontent.com/kreikol/dotsmithy/main/script/install.sh \
+            | DOTS_BIN="$RUNNER_TEMP/bin" bash
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/dots" --version
 
       - name: shellcheck de los hooks
         run: |
@@ -47,7 +38,7 @@ jobs:
           for profile in $(yq '.profiles | keys | .[]' dots.yaml); do
             echo "::group::perfil $profile"
             home=$(mktemp -d)
-            HOME="$home" "$RUNNER_TEMP/dots" link --content "$PWD" --profile "$profile"
+            HOME="$home" dots link --content "$PWD" --profile "$profile"
             echo "::endgroup::"
           done
 
@@ -61,17 +52,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/checkout@v7
-        with:
-          repository: kreikol/dotsmithy
-          ref: main
-          path: .dotsmithy
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: .dotsmithy/go.mod
-          cache-dependency-path: .dotsmithy/go.sum
-      - name: compilar dots
-        run: cd .dotsmithy && CGO_ENABLED=0 go build -trimpath -o ../dots ./cmd/dots
+      - name: instalar dots
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/kreikol/dotsmithy/main/script/install.sh \
+            | DOTS_BIN="$PWD/.bin" bash
+          cp .bin/dots ./dots
       # En un contenedor, /etc/hostname es un bind mount del runtime y no se puede
       # reemplazar (el motor escribe en un temporal y lo mueve encima: "Device or
       # resource busy"). Con --privileged lo desmontamos y queda el fichero normal
@@ -94,7 +79,7 @@ jobs:
               cat "$HOME/.cache/dotsmithy/profile.env"
               grep -qx "DOTS_PROFILE=$profile" "$HOME/.cache/dotsmithy/profile.env"
               echo "/etc/hostname: $(cat /etc/hostname)"
-              test "$(cat /etc/hostname)" = "$machine"
+              test "$(cat /etc/hostname)" = "$(cat "machines/$machine/system/hostname")"
               echo "::endgroup::"
             done
           '

@@ -43,8 +43,8 @@ Y dos regalos, que sirven de ejemplo de cómo usar las capas y los hooks:
   a `/etc/hostname` y un hook lo aplica en caliente.
 
 > [!WARNING]
-> El ejemplo de hostname **cambia el nombre de tu equipo de verdad** (a `laptop`
-> o `server`). Al crear tu repo, ajusta esos ficheros a tus máquinas o bórralos,
+> El ejemplo de hostname **cambia el nombre de tu equipo de verdad** (a `mi-laptop`
+> o `mi-server`). Al crear tu repo, ajusta esos ficheros a tus máquinas o bórralos,
 > junto con sus entradas en `dots.yaml` y el hook `shared/hooks/post-link/20-hostname.sh`.
 
 También trae un CI (`.github/workflows/validate.yml`) que comprueba en cada push
