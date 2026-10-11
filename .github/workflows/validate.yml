@@ -1,0 +1,87 @@
+# Comprueba en cada push que dotsmithy entiende este contenido: que el manifiesto
+# es válido y que cada perfil se enlaza sin conflictos en un $HOME vacío.
+name: Validar contenido
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: manifiesto + link por perfil
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # De momento compilamos dots desde main del motor: la última release
+      # publicada aún no entiende el esquema v2 del manifiesto. Cuando haya una
+      # release con v2, esto pasa a descargar el binario de la última release.
+      - uses: actions/checkout@v7
+        with:
+          repository: kreikol/dotsmithy
+          ref: main
+          path: .dotsmithy
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: .dotsmithy/go.mod
+          cache-dependency-path: .dotsmithy/go.sum
+      - name: compilar dots
+        run: |
+          cd .dotsmithy
+          CGO_ENABLED=0 go build -trimpath -o "$RUNNER_TEMP/dots" ./cmd/dots
+          "$RUNNER_TEMP/dots" --version
+
+      - name: shellcheck de los hooks
+        run: |
+          shopt -s globstar nullglob
+          hooks=(./**/hooks/**/*.sh)
+          if [ ${#hooks[@]} -gt 0 ]; then shellcheck "${hooks[@]}"; fi
+
+      - name: link de cada perfil en un $HOME vacío
+        run: |
+          for profile in $(yq '.profiles | keys | .[]' dots.yaml); do
+            echo "::group::perfil $profile"
+            home=$(mktemp -d)
+            HOME="$home" "$RUNNER_TEMP/dots" link --content "$PWD" --profile "$profile"
+            echo "::endgroup::"
+          done
+
+  fedora:
+    # El init completo (paquetes y hooks incluidos) en una Fedora limpia. Solo en
+    # la plantilla: en tu repo, con tus paquetes y hooks de verdad, sería lento y
+    # depende de cosas (systemd, red...) que un contenedor de CI no tiene.
+    if: github.repository == 'kreikol/dotsmithy-content-template'
+    name: init completo en Fedora
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: kreikol/dotsmithy
+          ref: main
+          path: .dotsmithy
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: .dotsmithy/go.mod
+          cache-dependency-path: .dotsmithy/go.sum
+      - name: compilar dots
+        run: cd .dotsmithy && CGO_ENABLED=0 go build -trimpath -o ../dots ./cmd/dots
+      - name: dots init de cada perfil
+        run: |
+          profiles=$(yq '.profiles | keys | .[]' dots.yaml | tr '\n' ' ')
+          docker run --rm -v "$PWD:/w" -w /w -e PROFILES="$profiles" fedora:41 bash -c '
+            set -euo pipefail
+            install -m 0755 dots /usr/local/bin/dots
+            for profile in $PROFILES; do
+              echo "::group::perfil $profile"
+              export HOME=$(mktemp -d)
+              dots init --content /w --profile "$profile" --yes
+              echo "::endgroup::"
+            done
+          '
