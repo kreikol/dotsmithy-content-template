@@ -46,20 +46,31 @@ hooks:
   points: [post-link, post-packages, post-init]
 
 # --- Lo que no es un fichero: COPR, recursos externos y ficheros de sistema ---
-# Se declara por capa. Ejemplos (quita el # para usarlos):
-#
-# layers:
-#   ux/desktop:
-#     copr: [usuario/repo]            # repos COPR que habilitar antes de instalar
-#   shared:
-#     externals:                      # repos o ficheros que el motor descarga
-#       - dest: ~/.config/nvim
-#         type: git
-#         repo: https://github.com/usuario/nvim-config
-#         ref: main
-#   machines/server:
-#     system:                         # ficheros fuera de $HOME, colocados con sudo
-#       - src: system/motd
-#         dest: /etc/motd
-#         type: copy
-#         mode: "0644"
+# Se declara por capa.
+layers:
+  # Nombre del equipo por máquina: se copia a /etc/hostname, y el hook
+  # shared/hooks/post-link/20-hostname.sh lo aplica en caliente.
+  # OJO: cambia el nombre del equipo de verdad. Ajústalo a tus máquinas o bórralo.
+  machines/laptop:
+    system:
+      - src: system/hostname
+        dest: /etc/hostname
+        type: copy
+        mode: "0644"
+  machines/server:
+    system:
+      - src: system/hostname
+        dest: /etc/hostname
+        type: copy
+        mode: "0644"
+
+  # Más ejemplos (quita el # para usarlos):
+  #
+  # ux/desktop:
+  #   copr: [usuario/repo]            # repos COPR que habilitar antes de instalar
+  # shared:
+  #   externals:                      # repos o ficheros que el motor descarga
+  #     - dest: ~/.config/nvim
+  #       type: git
+  #       repo: https://github.com/usuario/nvim-config
+  #       ref: main

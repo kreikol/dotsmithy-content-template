@@ -33,6 +33,20 @@ Dentro de cada capa, `home/` se enlaza en tu `$HOME`, `packages/dnf.txt` lista
 paquetes y `hooks/<punto>/` guarda scripts que se ejecutan en cada fase. El
 `dots.yaml` va comentado: empieza por ahí y cambia los perfiles por los tuyos.
 
+Y dos regalos, que sirven de ejemplo de cómo usar las capas y los hooks:
+
+- **Bienvenida al abrir la terminal**: una línea con tu versión de dotsmithy y el
+  perfil de la máquina (`🔨 dotsmithy 1.0.0 · perfil laptop (máquina laptop, ux=desktop)`).
+  Un hook guarda el perfil al hacer `dots init` o `dots update`, y
+  `~/.bashrc.d/10-dotsmithy-welcome.sh` lo enseña.
+- **Nombre del equipo por máquina**: `machines/<máquina>/system/hostname` se copia
+  a `/etc/hostname` y un hook lo aplica en caliente.
+
+> [!WARNING]
+> El ejemplo de hostname **cambia el nombre de tu equipo de verdad** (a `laptop`
+> o `server`). Al crear tu repo, ajusta esos ficheros a tus máquinas o bórralos,
+> junto con sus entradas en `dots.yaml` y el hook `shared/hooks/post-link/20-hostname.sh`.
+
 También trae un CI (`.github/workflows/validate.yml`) que comprueba en cada push
 que dotsmithy entiende tu contenido. Si no lo quieres, bórralo sin más.
 

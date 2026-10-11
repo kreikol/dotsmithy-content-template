@@ -72,16 +72,29 @@ jobs:
           cache-dependency-path: .dotsmithy/go.sum
       - name: compilar dots
         run: cd .dotsmithy && CGO_ENABLED=0 go build -trimpath -o ../dots ./cmd/dots
+      # En un contenedor, /etc/hostname es un bind mount del runtime y no se puede
+      # reemplazar (el motor escribe en un temporal y lo mueve encima: "Device or
+      # resource busy"). Con --privileged lo desmontamos y queda el fichero normal
+      # de la imagen, como en una máquina de verdad. Sin systemd, el hook de
+      # hostname se salta el cambio en caliente; aquí se comprueba el fichero.
       - name: dots init de cada perfil
         run: |
-          profiles=$(yq '.profiles | keys | .[]' dots.yaml | tr '\n' ' ')
-          docker run --rm -v "$PWD:/w" -w /w -e PROFILES="$profiles" fedora:41 bash -c '
+          # Parejas perfil:máquina, para comprobar el hostname de cada una.
+          profiles=$(yq '.profiles | to_entries | .[] | .key + ":" + .value.machine' dots.yaml | tr '\n' ' ')
+          docker run --rm --privileged -v "$PWD:/w" -w /w -e PROFILES="$profiles" fedora:41 bash -c '
             set -euo pipefail
+            umount /etc/hostname
             install -m 0755 dots /usr/local/bin/dots
-            for profile in $PROFILES; do
+            for pair in $PROFILES; do
+              profile=${pair%%:*} machine=${pair#*:}
               echo "::group::perfil $profile"
               export HOME=$(mktemp -d)
               dots init --content /w --profile "$profile" --yes
+              # Los regalos de la plantilla: el perfil para la bienvenida y el hostname.
+              cat "$HOME/.cache/dotsmithy/profile.env"
+              grep -qx "DOTS_PROFILE=$profile" "$HOME/.cache/dotsmithy/profile.env"
+              echo "/etc/hostname: $(cat /etc/hostname)"
+              test "$(cat /etc/hostname)" = "$machine"
               echo "::endgroup::"
             done
           '
