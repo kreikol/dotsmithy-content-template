@@ -19,8 +19,8 @@ jobs:
       - uses: actions/checkout@v7
 
       # De momento compilamos dots desde main del motor: la última release
-      # publicada aún no entiende el esquema v2 del manifiesto. Cuando haya una
-      # release con v2, esto pasa a descargar el binario de la última release.
+      # publicada aún no entiende el manifiesto de perfiles compuestos. Cuando haya
+      # una release que lo entienda, esto pasa a descargar el binario de la última.
       - uses: actions/checkout@v7
         with:
           repository: kreikol/dotsmithy

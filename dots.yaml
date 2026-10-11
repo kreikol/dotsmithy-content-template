@@ -3,7 +3,7 @@
 # El motor solo conoce la forma de este fichero. Lo de dentro (perfiles,
 # paquetes, dotfiles) es tuyo: cámbialo a tu gusto. La referencia completa está en
 # https://github.com/kreikol/dotsmithy/tree/main/docs
-version: 2
+version: 1
 
 # --- Dimensiones: los ejes en los que varían tus máquinas ---
 # Cada perfil elige un valor en cada dimensión, y lo de ese valor vive en la
